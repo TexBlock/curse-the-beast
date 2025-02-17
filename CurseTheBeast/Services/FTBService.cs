@@ -203,7 +203,7 @@ public class FTBService : IDisposable
             Icon = iconFile == null ? null : new FileEntry(RepoType.Icon, info.id.ToString())
                 .WithArchiveEntryName("icon.png")
                 .WithSize(iconFile.size == 0 ? null : iconFile.size)
-                .WithSha1(iconFile.sha1)
+                // .WithSha1(iconFile.sha1)
                 .SetUnrequired()
                 .SetDownloadable("icon.png", iconFile.url),
             Version = new()
