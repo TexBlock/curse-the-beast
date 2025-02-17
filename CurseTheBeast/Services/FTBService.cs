@@ -200,9 +200,10 @@ public class FTBService : IDisposable
             Summary = info.synopsis,
             ReadMe = info.description,
             Url = $"https://www.feed-the-beast.com/modpacks/" + info.id,
-            Icon = iconFile == null ? null : new FileEntry(RepoType.Icon, iconFile.id.ToString())
+            Icon = iconFile == null ? null : new FileEntry(RepoType.Icon, info.id.ToString())
                 .WithArchiveEntryName("icon.png")
-                .WithSize(iconFile.size)
+                .WithSize(iconFile.size == 0 ? null : iconFile.size)
+                .WithSha1(iconFile.sha1)
                 .SetUnrequired()
                 .SetDownloadable("icon.png", iconFile.url),
             Version = new()

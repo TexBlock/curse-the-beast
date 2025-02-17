@@ -81,7 +81,7 @@ public class FileEntry
         return this;
     }
 
-    public FileEntry WithSize(int size)
+    public FileEntry WithSize(int? size)
     {
         Size = size;
         return this;
