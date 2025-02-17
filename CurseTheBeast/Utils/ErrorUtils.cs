@@ -1,5 +1,6 @@
 ﻿using CurseTheBeast.Api.FTB;
 using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace CurseTheBeast.Utils;
 
@@ -20,7 +21,7 @@ public static class ErrorUtils
         typeof(Exception),
     };
 
-    public static void Handler(Exception ex)
+    public static void Handler(Exception ex, ITypeResolver? typeResolver)
     {
         AnsiConsole.WriteLine();
         if (ex is Spectre.Console.Cli.CommandAppException cliEx)
