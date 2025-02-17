@@ -153,14 +153,17 @@ public class DownloadQueue : IDisposable
 
     HttpClient getHttpClient()
     {
-        var cli = new HttpClient(new HttpClientHandler()
+        var handler = new SocketsHttpHandler()
         {
+            ConnectCallback = DnsUtils.ConnectCallback,
             AllowAutoRedirect = true,
             MaxAutomaticRedirections = 3,
-            AutomaticDecompression = System.Net.DecompressionMethods.All,
+            AutomaticDecompression = DecompressionMethods.All,
             UseProxy = HttpConfigService.Proxy != null,
             Proxy = HttpConfigService.Proxy,
-        })
+        };
+
+        var cli = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromSeconds(ConnectionTimeout),
             DefaultRequestVersion = HttpVersion.Version20

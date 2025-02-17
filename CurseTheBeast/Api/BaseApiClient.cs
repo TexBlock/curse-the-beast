@@ -31,8 +31,9 @@ public abstract class BaseApiClient : IDisposable
 
     protected virtual HttpMessageHandler HttpMessageHandlerFactory()
     {
-        var handler = new HttpClientHandler()
+        var handler = new SocketsHttpHandler()
         {
+            ConnectCallback = DnsUtils.ConnectCallback,
             AllowAutoRedirect = true,
             MaxAutomaticRedirections = 3,
             AutomaticDecompression = DecompressionMethods.All,
