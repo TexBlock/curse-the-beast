@@ -1,4 +1,5 @@
-﻿using CurseTheBeast.Api.NeoForge;
+﻿using CurseTheBeast.Api.Mojang.Model;
+using CurseTheBeast.Api.NeoForge;
 using CurseTheBeast.Storage;
 using CurseTheBeast.Utils;
 using System.IO.Compression;
@@ -13,10 +14,9 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
     const string MinGameVersion = "1.20.1";
 
     FileEntry _installer = null!;
-    int _installerSpec = -1;
     string _serverJarPath = null!;
-    string _loaderFileName = null!;
     IReadOnlyCollection<MavenFileEntry> _libraries = null!;
+    FileEntry _mappings = null!;
 
     readonly LocalStorage _tempStorage = LocalStorage.GetTempStorage("neoforge-install");
 
@@ -27,7 +27,7 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
         var file = new FileEntry(RepoType.ModLoaderJar, installerFileName)
             .WithArchiveEntryName(installerFileName);
         if (file.Validate())
-            return new[] { file };
+            return [file];
 
         using var api = new NeoForgeApiClient();
         var url = await api.GetServerInstallerUrlAsync(GameVersion, LoaderVersion, ct);
@@ -35,7 +35,7 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
             return Array.Empty<FileEntry>();
 
         file.SetDownloadable(installerFileName, url);
-        return new[] { file };
+        return [file];
     }
 
     public override bool IsPreinstallationSupported()
@@ -56,49 +56,17 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
     {
         using var zip = ZipFile.OpenRead(_installer.LocalPath);
         var installerJson = await getJsonInZip(zip, "install_profile.json");
-
-        if(installerJson.AsObject().TryGetPropertyValue("spec", out var specNode))
-            _installerSpec = (int)specNode!;
-        else
-            _installerSpec = -1;
-
-        // 超低版本特殊处理
-        if (_installerSpec == -1)
-        {
-            _serverJarPath = $"minecraft_server.{GameVersion}.jar";
-            _loaderFileName = installerJson["install"]!["filePath"]!.ToString();
-
-            _libraries = installerJson["versionInfo"]!["libraries"]!.AsArray()
-                .Where(l => l!.AsObject().TryGetPropertyValue("serverreq", out var isServer) && (bool)isServer!)
-                .Select(l => new MavenFileEntry(l!["name"]!.ToString())
-                    .WithMavenRepo(l!["url"]?.ToString() ?? "https://libraries.minecraft.net")
-                    .WithMavenBaseArchiveEntryName())
-                .ToArray();
-            return _libraries;
-        }
-
-        // 主流版本
         var versionJson = await getJsonInZip(zip, installerJson["json"]!.ToString().TrimStart('.').Trim('/'));
-        // ( ,1.16.5]
-        if (_installerSpec == 0)
-        {
-            _serverJarPath = $"minecraft_server.{GameVersion}.jar";
-            _loaderFileName = new MavenArtifact(installerJson["path"]!.ToString()).FileName;
-        }
-        // [1.17.1, )
-        else if(_installerSpec == 1)
-        {
-            _serverJarPath = installerJson["serverJarPath"]!.ToString()
-                .Replace("{LIBRARY_DIR}", "libraries")
-                .Replace("{MINECRAFT_VERSION}", GameVersion)
-                .Replace('/', Path.DirectorySeparatorChar)
-                .TrimStart('.')
-                .Trim(Path.DirectorySeparatorChar);
-        }
-        else
-        {
+
+        if (installerJson["spec"]?.GetValue<int>() != 1)
             throw new Exception($"不支持 neoforge-{GameVersion}-{LoaderVersion} 服务端预安装");
-        }
+
+        _serverJarPath = installerJson["serverJarPath"]!.ToString()
+            .Replace("{LIBRARY_DIR}", "libraries")
+            .Replace("{MINECRAFT_VERSION}", GameVersion)
+            .Replace('/', Path.DirectorySeparatorChar)
+            .TrimStart('.')
+            .Trim(Path.DirectorySeparatorChar);
 
         _libraries = new[] { installerJson, versionJson }
             .SelectMany(json => json["libraries"]!
@@ -109,7 +77,14 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
                 .Where(lib => lib != null))
             .DistinctBy(lib => lib!.Artifact.Id)
             .ToArray()!;
-        return _libraries;
+        if (manifest.downloads.server_mappings == null)
+            return _libraries;
+
+        _mappings = new FileEntry(RepoType.ServerMappings, GameVersion)
+            .SetDownloadable("server_mappings.txt", manifest.downloads.server_mappings.url)
+            .WithSize(manifest.downloads.server_mappings.size)
+            .WithSha1(manifest.downloads.server_mappings.sha1);
+        return [.. (_libraries as IReadOnlyCollection<FileEntry>), _mappings];
     }
 
     static MavenFileEntry? getMavenLib(string artifactId, string? path, string? providedUrl)
@@ -151,33 +126,22 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
         }
 
         // 执行安装
-        var ret = await java.ExecuteJarAsync(_installer.LocalPath, new[] { "--installServer", ".", "--offline" }, 
+        var fatInstallerPath = _mappings == null ? _installer.LocalPath : await generateFatInstaller();
+        var ret = await java.ExecuteJarAsync(fatInstallerPath, ["--installServer", ".", "--offline"],
             _tempStorage.WorkSpace, ct);
         if (ret != 0)
             throw new Exception($"neoforge-{GameVersion}-{LoaderVersion} 服务端预安装失败 ");
+        try
+        {
+            File.Delete(fatInstallerPath);
+        } catch(Exception) { }
 
         var title = ServerName ?? $"NeoForge Server {GameVersion} {LoaderVersion}";
         var files = new List<FileEntry>(64);
-        string? launcherScriptName = null;
 
-        // 自行创建脚本
-        if(_installerSpec == -1 || _installerSpec == 0)
-        {
-            if (File.Exists(Path.Combine(_tempStorage.WorkSpace, _loaderFileName)))
-            {
-                launcherScriptName = JarLauncherUtils.GenerateScript(_tempStorage.WorkSpace, java.DistName, _loaderFileName, title, Ram).ArchiveEntryName;
-                files.AddRange(await java.GetJreFilesAsync(ct));
-            }
-        }
-        // 修改forge自带脚本
-        else
-        {
-            launcherScriptName = JarLauncherUtils.InjectForgeScript(_tempStorage.WorkSpace, java.DistName, title, Ram);
-            if (launcherScriptName != null)
-            {
-                files.AddRange(await java.GetJreFilesAsync(ct));
-            }
-        }
+        var launcherScriptName = JarLauncherUtils.InjectForgeScript(_tempStorage.WorkSpace, java.DistName, title, Ram);
+        if (launcherScriptName != null)
+            files.AddRange(await java.GetJreFilesAsync(ct));
 
         // 生成EULA同意文件
         await GenerateEulaAgreementFileAsync(_tempStorage.WorkSpace, ct);
@@ -186,6 +150,29 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
         if (launcherScriptName != null && Environment.OSVersion.Platform != PlatformID.Win32NT)
             files.First(f => f.ArchiveEntryName == launcherScriptName).SetUnixExecutable();
         return files;
+    }
+
+    private async Task<string> generateFatInstaller()
+    {
+        var path = Path.Combine(_tempStorage.WorkSpace, "installer.jar");
+        using var srcFs = File.OpenRead(_installer.LocalPath);
+        using var srcZip = new ZipArchive(srcFs, ZipArchiveMode.Read, true, UTF8);
+        await using var dstFs = File.Create(path);
+        using var dstZip = new ZipArchive(dstFs, ZipArchiveMode.Create, true, UTF8);
+        foreach (var entry in srcZip.Entries)
+        {
+            var dstEntry = dstZip.CreateEntry(entry.FullName, CompressionLevel.Fastest);
+            using var srcStream = entry.Open();
+            using var dstStream = dstEntry.Open();
+            await srcStream.CopyToAsync(dstStream);
+        }
+
+        var mappingEntry = dstZip.CreateEntry($"maven/minecraft/{GameVersion}/server_mappings.txt", CompressionLevel.Fastest);
+        using var mappingStream = File.OpenRead(_mappings.LocalPath);
+        using var entryStream = mappingEntry.Open();
+        await mappingStream.CopyToAsync(entryStream);
+
+        return path;
     }
 
     public override void Dispose()

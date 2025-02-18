@@ -10,9 +10,10 @@ public partial class GameManifest
 
     public class Downloads
     {
-        public Server server { get; init; } = null!;
+        public File server { get; init; } = null!;
+        public File? server_mappings { get; init; }
 
-        public class Server
+        public class File
         {
             public string sha1 { get; init; } = null!;
             public int size { get; init; }
