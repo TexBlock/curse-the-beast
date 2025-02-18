@@ -52,7 +52,7 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
         return installers;
     }
 
-    public override async Task<IReadOnlyCollection<FileEntry>> ResolveInstallerDependenciesAsync(CancellationToken ct = default)
+    public override async Task<IReadOnlyCollection<FileEntry>> ResolveInstallerDependenciesAsync(GameManifest manifest, CancellationToken ct = default)
     {
         using var zip = ZipFile.OpenRead(_installer.LocalPath);
         var installerJson = await getJsonInZip(zip, "install_profile.json");

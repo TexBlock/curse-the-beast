@@ -1,5 +1,6 @@
 ﻿using CurseTheBeast.Api.Fabric;
 using CurseTheBeast.Api.Fabric.Model;
+using CurseTheBeast.Api.Mojang.Model;
 using CurseTheBeast.Storage;
 using CurseTheBeast.Utils;
 using Spectre.Console;
@@ -63,7 +64,7 @@ public partial class FabricServerInstaller : AbstractModServerInstaller
         return Task.FromResult(Array.Empty<FileEntry>() as IReadOnlyCollection<FileEntry>);
     }
 
-    public override async Task<IReadOnlyCollection<FileEntry>> ResolveInstallerDependenciesAsync(CancellationToken ct)
+    public override async Task<IReadOnlyCollection<FileEntry>> ResolveInstallerDependenciesAsync(GameManifest manifest, CancellationToken ct)
     {
         using var api = new FabricApiClient();
         _manifest = await api.GetServerManifestAsync(GameVersion, LoaderVersion, ct);

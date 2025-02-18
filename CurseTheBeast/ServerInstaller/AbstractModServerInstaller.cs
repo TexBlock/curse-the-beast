@@ -1,4 +1,5 @@
-﻿using CurseTheBeast.Storage;
+﻿using CurseTheBeast.Api.Mojang.Model;
+using CurseTheBeast.Storage;
 
 namespace CurseTheBeast.ServerInstaller;
 
@@ -28,7 +29,7 @@ public abstract class AbstractModServerInstaller : IDisposable
         throw new NotImplementedException();
     }
 
-    public virtual Task<IReadOnlyCollection<FileEntry>> ResolveInstallerDependenciesAsync(CancellationToken ct = default)
+    public virtual Task<IReadOnlyCollection<FileEntry>> ResolveInstallerDependenciesAsync(GameManifest manifest, CancellationToken ct = default)
     {
         throw new NotImplementedException();
     }

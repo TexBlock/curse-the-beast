@@ -1,4 +1,5 @@
 ﻿using CurseTheBeast.Api.Forge;
+using CurseTheBeast.Api.Mojang.Model;
 using CurseTheBeast.Storage;
 using CurseTheBeast.Utils;
 using System.IO.Compression;
@@ -53,7 +54,7 @@ public class ForgeServerInstaller : AbstractModServerInstaller
         return installers;
     }
 
-    public override async Task<IReadOnlyCollection<FileEntry>> ResolveInstallerDependenciesAsync(CancellationToken ct = default)
+    public override async Task<IReadOnlyCollection<FileEntry>> ResolveInstallerDependenciesAsync(GameManifest manifest, CancellationToken ct = default)
     {
         using var zip = ZipFile.OpenRead(_installer.LocalPath);
         var installerJson = await getJsonInZip(zip, "install_profile.json");

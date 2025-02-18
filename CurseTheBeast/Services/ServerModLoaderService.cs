@@ -1,6 +1,7 @@
 ﻿using CurseTheBeast.Api.Azul;
 using CurseTheBeast.Api.Azul.Model;
 using CurseTheBeast.Api.Mojang;
+using CurseTheBeast.Api.Mojang.Model;
 using CurseTheBeast.ServerInstaller;
 using CurseTheBeast.Services.Model;
 using CurseTheBeast.Storage;
@@ -42,8 +43,9 @@ public class ServerModLoaderService : IDisposable
             throw new Exception($"不支持预安装 {_pack.Runtime.ModLoaderType}-{_pack.Runtime.GameVersion}-{_pack.Runtime.ModLoaderVersion} 服务端");
 
         _java ??= await GetJavaRuntimeAsync(ct);
-        var serverJar = await GetServerJarAsync(ct);
-        var loaderFiles = await GetModLoaderFilesAsync(_java, serverJar, ct);
+        var manifest = await GetGameManifestAsync(ct);
+        var serverJar = await GetServerJarAsync(manifest, ct);
+        var loaderFiles = await GetModLoaderFilesAsync(_java, manifest, serverJar, ct);
 
         Success.WriteLine("√ 服务端预安装完成");
         return loaderFiles;
@@ -71,14 +73,14 @@ public class ServerModLoaderService : IDisposable
         return Array.Empty<FileEntry>();
     }
 
-    public async Task<IReadOnlyCollection<FileEntry>> GetModLoaderFilesAsync(JavaRuntime java, FileEntry serverJar, CancellationToken ct = default)
+    public async Task<IReadOnlyCollection<FileEntry>> GetModLoaderFilesAsync(JavaRuntime java, GameManifest manifest, FileEntry serverJar, CancellationToken ct = default)
     {
         var installerJar = await Focused.StatusAsync($"解析 {_pack.Runtime.ModLoaderType} 安装器", async ctx => await _installer!.ResolveInstallerAsync(ct));
         if (installerJar.Count > 0)
             await FileDownloadService.DownloadAsync($"下载 {_pack.Runtime.ModLoaderType} 安装器", installerJar, ct);
 
         var deps = await Focused.StatusAsync($"解析 {_pack.Runtime.ModLoaderType} 依赖", 
-            async ctx => await _installer!.ResolveInstallerDependenciesAsync(ct));
+            async ctx => await _installer!.ResolveInstallerDependenciesAsync(manifest, ct));
         if(deps.Count > 0)
             await FileDownloadService.DownloadAsync($"下载 {_pack.Runtime.ModLoaderType} 依赖", deps, ct);
 
@@ -105,25 +107,32 @@ public class ServerModLoaderService : IDisposable
         return installer;
     }
 
-    public async Task<FileEntry> GetServerJarAsync(CancellationToken ct = default)
+    public async Task<GameManifest> GetGameManifestAsync(CancellationToken ct = default)
+    {
+        return await LocalStorage.Persistent.GetOrSaveObject($"game-{_pack.Runtime.GameVersion}", async () =>
+        {
+            return await Focused.StatusAsync("解析版本清单", async ctx =>
+            {
+                using var api = new MojangApiClient();
+                var list = await api.GetGameVersionListAsync(ct);
+                var version = list.versions.FirstOrDefault(v => v.id == _pack.Runtime.GameVersion)
+                    ?? throw new Exception("未知的 MC 版本：" + _pack.Runtime.GameVersion);
+                return await api.GetGameManifestAsync(version.url, ct);
+            });
+        }, GameManifest.GameManifestContext.Default.GameManifest, ct);
+    }
+
+    public async Task<FileEntry> GetServerJarAsync(GameManifest manifest, CancellationToken ct = default)
     {
         var serverJarFile = new FileEntry(RepoType.ServerJar, $"{_pack.Runtime.GameVersion}.jar")
             .SetSha1FileRequired();
         if (serverJarFile.Validate(false))
             return serverJarFile;
 
-        var manifest = await Focused.StatusAsync("解析服务端", async ctx =>
-        {
-            using var api = new MojangApiClient();
-            var list = await api.GetGameVersionListAsync(ct);
-            var version = list.versions.FirstOrDefault(v => v.id == _pack.Runtime.GameVersion)
-                ?? throw new Exception("未知的 MC 版本：" + _pack.Runtime.GameVersion);
-            return await api.GetGameManifestAsync(version.url, ct);
-        });
         serverJarFile.SetDownloadable($"mc-server-{_pack.Runtime.GameVersion}.jar", manifest.downloads.server.url)
             .WithSha1(manifest.downloads.server.sha1)
             .WithSize(manifest.downloads.server.size);
-        await FileDownloadService.DownloadAsync("下载服务端", new[] { serverJarFile }, ct);
+        await FileDownloadService.DownloadAsync("下载服务端", [serverJarFile], ct);
         return serverJarFile;
     }
 

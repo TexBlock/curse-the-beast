@@ -14,4 +14,5 @@ public enum RepoType
     JreArchive,
     MavenArtifact,
     ServerJar,
+    ServerMappings,
 }
