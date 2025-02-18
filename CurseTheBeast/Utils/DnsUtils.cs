@@ -20,7 +20,8 @@ public class DnsUtils
 
     public static Func<SocketsHttpConnectionContext, CancellationToken, ValueTask<Stream>>? ConnectCallback { get; } = async (ctx, ct) =>
     {
-        var ipAddress = await ResolveAsync(ctx.DnsEndPoint.Host, ct);
+        if (!IPAddress.TryParse(ctx.DnsEndPoint.Host, out var ipAddress))
+            ipAddress = await ResolveAsync(ctx.DnsEndPoint.Host, ct);
         var socket = new Socket(SocketType.Stream, ProtocolType.Tcp)
         {
             NoDelay = true
