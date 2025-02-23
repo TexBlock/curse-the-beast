@@ -60,8 +60,16 @@ public class DnsUtils
     private static async ValueTask DoResolveAsync(string host, IList<IPAddress> list, CancellationToken ct)
     {
         var rsp = await _client.QueryAsync(host, DnsQueryType.A, cancellationToken: ct);
-        foreach (var record in rsp.Answers.WithARecords())
-            list.Add(record.ToIPAddress());
+        if (host != "localhost")
+        {
+            foreach (var record in rsp.Answers.WithARecords())
+                list.Add(record.ToIPAddress());
+        }
+        if (list.Count == 0)
+        {
+            foreach (var addr in await Dns.GetHostAddressesAsync(host, ct))
+                list.Add(addr);
+        }
         if (list.Count == 0)
             throw new Exception("无法解析域名 " + host);
     }
