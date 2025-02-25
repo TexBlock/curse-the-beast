@@ -70,12 +70,18 @@ public class ForgeServerInstaller : AbstractModServerInstaller
             _serverJarPath = $"minecraft_server.{GameVersion}.jar";
             _loaderFileName = installerJson["install"]!["filePath"]!.ToString();
 
-            _libraries = installerJson["versionInfo"]!["libraries"]!.AsArray()
+            var libs = installerJson["versionInfo"]!["libraries"]!.AsArray()
                 .Where(l => l!.AsObject().TryGetPropertyValue("serverreq", out var isServer) && (bool)isServer!)
                 .Select(l => new MavenFileEntry(l!["name"]!.ToString())
-                    .WithMavenRepo(l!["url"]?.ToString() ?? "https://libraries.minecraft.net")
-                    .WithMavenBaseArchiveEntryName())
-                .ToArray();
+                    .WithMavenRepo(replaceLegacyMavenUrl(l!["url"]?.ToString()) ?? "https://libraries.minecraft.net")
+                    .WithMavenBaseArchiveEntryName());
+            var opts = installerJson["optionals"]?.AsArray()
+                .Where(l => l!.AsObject().TryGetPropertyValue("server", out var isServer) && (bool)isServer!)
+                .Select(l => new MavenFileEntry(l!["artifact"]!.ToString())
+                    .WithMavenRepo(replaceLegacyMavenUrl(l!["maven"]?.ToString()) ?? "https://libraries.minecraft.net")
+                    .WithMavenBaseArchiveEntryName()) ?? [];
+
+            _libraries = [.. libs, .. opts];
             return _libraries;
         }
 
@@ -106,13 +112,16 @@ public class ForgeServerInstaller : AbstractModServerInstaller
             .SelectMany(json => json["libraries"]!
                 .AsArray()
                 .Select(lib => getMavenLib(lib!["name"]!.ToString(), 
-                    lib["downloads"]?["artifact"]?["path"]?.ToString(), 
-                    lib["downloads"]?["artifact"]?["url"]?.ToString()))
+                    lib["downloads"]?["artifact"]?["path"]?.ToString(),
+                    replaceLegacyMavenUrl(lib["downloads"]?["artifact"]?["url"]?.ToString())))
                 .Where(lib => lib != null))
             .DistinctBy(lib => lib!.Artifact.Id)
             .ToArray()!;
         return _libraries;
     }
+
+    static string? replaceLegacyMavenUrl(string? url)
+        => url?.Replace("//files.minecraftforge.net/maven/", "//maven.minecraftforge.net/");
 
     static MavenFileEntry? getMavenLib(string artifactId, string? path, string? providedUrl)
     {
