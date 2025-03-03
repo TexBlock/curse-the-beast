@@ -9,13 +9,13 @@ namespace CurseTheBeast.Utils;
 
 public class DnsUtils
 {
-    private static readonly ConcurrentDictionary<string, (List<IPAddress> Addr, SemaphoreSlim Lock)> _cache = new();
+    private static readonly ConcurrentDictionary<string, (List<IPAddress?> Addr, SemaphoreSlim Lock)> _cache = new();
     private static readonly DnsClient _client = new (
         [
+            new NameServer(IPAddress.Parse("223.5.5.5"), ConnectionType.DoH),       // 阿里
+            new NameServer(IPAddress.Parse("1.12.12.12"), ConnectionType.DoH),      // 腾讯
             NameServers.Cloudflare.IPv4.GetPrimary(ConnectionType.DoH),
             new NameServer(IPAddress.Parse("208.67.222.222"), ConnectionType.DoH),  // OpenDNS
-            new NameServer(IPAddress.Parse("223.5.5.5"), ConnectionType.DoH),       // 阿里
-            new NameServer(IPAddress.Parse("119.29.29.29"), ConnectionType.Udp),    // 腾讯
         ], DnsMessageOptions.Default);
 
     public static Func<SocketsHttpConnectionContext, CancellationToken, ValueTask<Stream>>? ConnectCallback { get; } = async (ctx, ct) =>
@@ -52,13 +52,14 @@ public class DnsUtils
         }
 
         if (entry.Addr.Count == 1)
-            return entry.Addr[0];
+            return entry.Addr[0] ?? throw new Exception("无法解析域名 " + host);
         else
-            return entry.Addr[System.Random.Shared.Next(entry.Addr.Count)];
+            return entry.Addr[System.Random.Shared.Next(entry.Addr.Count)]!;
     }
 
-    private static async ValueTask DoResolveAsync(string host, IList<IPAddress> list, CancellationToken ct)
+    private static async ValueTask DoResolveAsync(string host, IList<IPAddress?> list, CancellationToken ct)
     {
+        list.Clear();
         var rsp = await _client.QueryAsync(host, DnsQueryType.A, cancellationToken: ct);
         if (host != "localhost")
         {
@@ -67,10 +68,14 @@ public class DnsUtils
         }
         if (list.Count == 0)
         {
-            foreach (var addr in await Dns.GetHostAddressesAsync(host, ct))
-                list.Add(addr);
+            try
+            {
+                foreach (var addr in await Dns.GetHostAddressesAsync(host, ct))
+                    list.Add(addr);
+            }
+            catch (Exception) { }
         }
         if (list.Count == 0)
-            throw new Exception("无法解析域名 " + host);
+            list.Add(null);
     }
 }

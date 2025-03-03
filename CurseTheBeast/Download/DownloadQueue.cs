@@ -155,7 +155,7 @@ public class DownloadQueue : IDisposable
     {
         var handler = new SocketsHttpHandler()
         {
-            ConnectCallback = DnsUtils.ConnectCallback,
+            ConnectCallback = HttpConfigService.Proxy != null ? null : DnsUtils.ConnectCallback,
             AllowAutoRedirect = true,
             MaxAutomaticRedirections = 3,
             AutomaticDecompression = DecompressionMethods.All,
