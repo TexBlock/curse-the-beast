@@ -190,7 +190,9 @@ public class FTBService : IDisposable
         var iconFile = info.art.FirstOrDefault(a => a.type == "square");
         // var coverFile = info.art.FirstOrDefault(a => a.type == "splash");
 
-        await CurseforgeService.FetchModInfoAsync(files.Where(f => f.Type.Equals("mod", StringComparison.OrdinalIgnoreCase)), ct);
+        var mods = files.Where(f => f.Type.Equals("mod", StringComparison.OrdinalIgnoreCase)).ToArray();
+        await CurseforgeService.FetchModInfoAsync(mods, ct);
+        await ModrinthService.FetchModFileUrlAsync(mods, ct);
 
         return new FTBModpack()
         {
