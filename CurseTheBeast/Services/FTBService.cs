@@ -181,9 +181,13 @@ public class FTBService : IDisposable
     {
         var version = info.versions.FirstOrDefault(v => v.id == versionId) ?? throw new Exception("Version id 不正确");
 
-        var manifest = await LocalStorage.Persistent.GetOrSaveObject($"manifest-{info.id}-{versionId}",
-            async () => await Focused.StatusAsync("获取整合包文件清单",
-                async ctx => await _ftb.GetManifestAsync(info.id, versionId, ct)),
+        var manifest = await LocalStorage.Persistent.GetOrUpdateObject($"manifest-{info.id}-{versionId}",
+            async manifest =>
+            {
+                if (manifest?.files.All(f => f.hashes != null) == true)
+                    return manifest;
+                return await Focused.StatusAsync("获取整合包文件清单", async ctx => await _ftb.GetManifestAsync(info.id, versionId, ct));
+            },
             ModpackManifest.ModpackManifestContext.Default.ModpackManifest, ct);
 
         var files = manifest.files.Select(f => new FTBFileEntry(f)).ToArray();
