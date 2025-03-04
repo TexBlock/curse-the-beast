@@ -26,8 +26,6 @@ public class FTBFileEntry : FileEntry
             ArchiveEntryName = ArchiveEntryName.Remove(ArchiveEntryName.Length - 9);
 
         SetDownloadable(file.name, [file.url, ..file.mirrors]);
-        // 有些mod删库跑路，跳过下载交给用户处理
-        SetUnrequired();
 
         Side = file switch
         {

@@ -190,7 +190,7 @@ public class FTBService : IDisposable
         var iconFile = info.art.FirstOrDefault(a => a.type == "square");
         // var coverFile = info.art.FirstOrDefault(a => a.type == "splash");
 
-        await CurseforgeService.FetchModInfo(files.Where(f => f.Type.Equals("mod", StringComparison.OrdinalIgnoreCase)), ct);
+        await CurseforgeService.FetchModInfoAsync(files.Where(f => f.Type.Equals("mod", StringComparison.OrdinalIgnoreCase)), ct);
 
         return new FTBModpack()
         {
@@ -245,31 +245,8 @@ public class FTBService : IDisposable
             files.Add(pack.Icon);
 
         await FileDownloadService.DownloadAsync("下载整合包文件", files, ct);
-        await TryRecoverUnreachableFiles(files.Where(f => f is FTBFileEntry).Select(f => f as FTBFileEntry)!, ct);
 
         Success.WriteLine("√ 下载完成");
-    }
-
-    public async Task TryRecoverUnreachableFiles(IEnumerable<FTBFileEntry> allFiles, CancellationToken ct = default)
-    {
-        var list = allFiles.Where(file => file.Unreachable && file.Curseforge != null && !string.IsNullOrWhiteSpace(file.Sha1)).ToList();
-        if (list.Count == 0)
-            return;
-
-        await Focused.StatusAsync("尝试恢复失效的文件", async ctx =>
-        {
-            foreach (var file in list)
-            {
-                var rsp = await _ftb.GetModInfoAsync(file.Sha1!);
-                var rspFile = rsp.versions.FirstOrDefault(f => f.sha1.Equals(file.Sha1, StringComparison.OrdinalIgnoreCase));
-                if (rspFile != null)
-                {
-                    file.SetDownloadable(file.DisplayName!, rspFile.url);
-                }
-            }
-        });
-
-        await FileDownloadService.DownloadAsync("重新下载失效文件", list.Where(f => !f.Unreachable).ToArray(), ct);
     }
 
     public void Dispose()

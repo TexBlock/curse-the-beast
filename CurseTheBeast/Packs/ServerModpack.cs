@@ -48,30 +48,13 @@ public class ServerModpack
             ["recommendedRam"] = _pack.Runtime.RecommendedRam,
             ["minimumRam"] = _pack.Runtime.MinimumRam,
         }, ct);
-
-        var unreachableFiles = new JsonArray(_pack.Files.ServerFiles.Where(f => f.Unreachable).Select(f => new JsonObject()
-        {
-            ["path"] = f.ArchiveEntryName,
-            ["urls"] = new JsonArray(f.Urls.Select(url => JsonValue.Create(url)).ToArray()),
-            ["curseforge"] = f.Curseforge == null ? null : new JsonObject()
-            {
-                ["projectId"] = f.Curseforge.ProjectId,
-                ["fileId"] = f.Curseforge.FileId,
-                ["page"] = $"https://www.curseforge.com/projects/{f.Curseforge.ProjectId}",
-            },
-        }).ToArray());
-        if (unreachableFiles.Count > 0)
-            await archive.WriteJsonFileAsync($"unreachable-files.json", unreachableFiles, ct);
     }
 
     async Task writeAssetsAsync(ZipArchive archive, CancellationToken ct)
     {
         foreach (var file in _pack.Files.ServerFiles)
         {
-            if (!file.Unreachable)
-            {
-                await archive.WriteFileAsync(_name, file, ct);
-            }
+            await archive.WriteFileAsync(_name, file, ct);
         }
     }
 

@@ -53,28 +53,13 @@ public static class CurseforgeModpackExtensions
         };
 
         await archive.WriteJsonFileAsync("manifest.json", manifest, ct);
-
-        var unreachableFiles = new JsonArray(pack.Files.ClientFullFiles.Where(f => f.Unreachable).Select(f => new JsonObject()
-        {
-            ["path"] = f.ArchiveEntryName,
-            ["urls"] = new JsonArray(f.Urls.Select(url => JsonValue.Create(url)).ToArray()),
-            ["curseforge"] = f.Curseforge == null ? null : new JsonObject()
-            {
-                ["projectId"] = f.Curseforge.ProjectId,
-                ["fileId"] = f.Curseforge.FileId,
-                ["page"] = $"https://www.curseforge.com/projects/{f.Curseforge.ProjectId}",
-            },
-        }).ToArray());
-        if (unreachableFiles.Count > 0)
-            await archive.WriteJsonFileAsync("overrides/unreachable-files.json", unreachableFiles, ct);
     }
 
     static async Task writeAssetsAsync(this ZipArchive archive, FTBModpack pack, bool full, CancellationToken ct)
     {
         foreach (var file in (full ? pack.Files.ClientFullFiles : pack.Files.ClientFilesWithoutCurseforgeMods))
         {
-            if(!file.Unreachable)
-                await archive.WriteFileAsync("overrides", file, ct);
+            await archive.WriteFileAsync("overrides", file, ct);
         }
     }
 
