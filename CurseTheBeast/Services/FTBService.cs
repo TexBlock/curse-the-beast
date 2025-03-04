@@ -191,7 +191,27 @@ public class FTBService : IDisposable
         // var coverFile = info.art.FirstOrDefault(a => a.type == "splash");
 
         var mods = files.Where(f => f.Type.Equals("mod", StringComparison.OrdinalIgnoreCase)).ToArray();
-        await CurseforgeService.FetchModInfoAsync(mods, ct);
+        await LocalStorage.Persistent.GetOrUpdateObject<CurseforgeCache>("curseforge", async cache =>
+        {
+            var requestMods = cache == null ? mods : mods.Where(m =>
+            {
+                if (!cache.Items.TryGetValue(m.Sha1!, out var item))
+                    return true;
+                if (item != null)
+                    m.WithCurseforgeInfo(item.ProjectId, item.FileId);
+                return false;
+            }).ToArray();
+            if (requestMods.Length > 0)
+                await CurseforgeService.FetchModInfoAsync(requestMods, ct);
+            return new CurseforgeCache()
+            {
+                Items = mods.ToDictionary(m => m.Sha1!, m => m.Curseforge == null ? null : new CurseforgeCache.Item()
+                {
+                    ProjectId = m.Curseforge!.ProjectId,
+                    FileId = m.Curseforge.FileId
+                })
+            };
+        }, CurseforgeCache.CurseforgeCacheContext.Default.CurseforgeCache);
         await ModrinthService.FetchModFileUrlAsync(mods, ct);
 
         return new FTBModpack()
