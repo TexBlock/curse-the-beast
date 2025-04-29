@@ -2,6 +2,7 @@
 using CurseTheBeast.Api.NeoForge;
 using CurseTheBeast.Storage;
 using CurseTheBeast.Utils;
+using Semver;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -11,7 +12,7 @@ namespace CurseTheBeast.ServerInstaller;
 
 public class NeoForgeServerInstaller : AbstractModServerInstaller
 {
-    const string MinGameVersion = "1.20.1";
+    static readonly SemVersion MinGameVersion = SemVersion.Parse("1.20.1", SemVersionStyles.Any);
 
     FileEntry _installer = null!;
     string _serverJarPath = null!;
@@ -40,7 +41,7 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
 
     public override bool IsPreinstallationSupported()
     {
-        return new Version(GameVersion) >= MinGameVersion;
+        return SemVersion.Parse(GameVersion, SemVersionStyles.Any).ComparePrecedenceTo(MinGameVersion) >= 0;
     }
 
     public override async Task<IReadOnlyCollection<FileEntry>> ResolveInstallerAsync(CancellationToken ct = default)

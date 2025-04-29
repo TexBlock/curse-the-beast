@@ -3,6 +3,7 @@ using CurseTheBeast.Api.Fabric.Model;
 using CurseTheBeast.Api.Mojang.Model;
 using CurseTheBeast.Storage;
 using CurseTheBeast.Utils;
+using Semver;
 using Spectre.Console;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
@@ -13,6 +14,7 @@ namespace CurseTheBeast.ServerInstaller;
 public partial class FabricServerInstaller : AbstractModServerInstaller
 {
     const string LegacyInstallerVersion = "0.11.2";
+    static readonly SemVersion LegacyLoaderVersion = SemVersion.Parse("0.12.5", SemVersionStyles.Any);
     const string DefaultLauncherManifestMainClass = "net.fabricmc.loader.launch.server.FabricServerLauncher";
     const string ServicesDir = "META-INF/services/";
     const string ManifestFile = "META-INF/MANIFEST.MF";
@@ -76,7 +78,7 @@ public partial class FabricServerInstaller : AbstractModServerInstaller
 
     public override async Task<IReadOnlyCollection<FileEntry>> PreInstallAsync(JavaRuntime java, FileEntry serverJar, CancellationToken ct = default)
     {
-        var embededLib = new Version(LoaderVersion) <= "0.12.5";
+        var embededLib = SemVersion.Parse(LoaderVersion, SemVersionStyles.Any).ComparePrecedenceTo(LegacyLoaderVersion) <= 0;
 
         var launcherFile = await generateLauncherAsync(embededLib, ct);
         var jreFiles = await java.GetJreFilesAsync(ct);

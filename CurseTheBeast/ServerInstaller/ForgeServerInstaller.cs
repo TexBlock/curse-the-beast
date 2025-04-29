@@ -2,6 +2,7 @@
 using CurseTheBeast.Api.Mojang.Model;
 using CurseTheBeast.Storage;
 using CurseTheBeast.Utils;
+using Semver;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -11,8 +12,7 @@ namespace CurseTheBeast.ServerInstaller;
 
 public class ForgeServerInstaller : AbstractModServerInstaller
 {
-    // const string MinGameVersion = "1.12";
-    const string MinGameVersion = "1.6.1";
+    static readonly SemVersion MinGameVersion = SemVersion.Parse("1.6.1", SemVersionStyles.Any);
 
     FileEntry _installer = null!;
     int _installerSpec = -1;
@@ -43,7 +43,7 @@ public class ForgeServerInstaller : AbstractModServerInstaller
 
     public override bool IsPreinstallationSupported()
     {
-        return new Version(GameVersion) >= MinGameVersion;
+        return SemVersion.Parse(GameVersion, SemVersionStyles.Any).ComparePrecedenceTo(MinGameVersion) >= 0;
     }
 
     public override async Task<IReadOnlyCollection<FileEntry>> ResolveInstallerAsync(CancellationToken ct = default)
@@ -128,8 +128,8 @@ public class ForgeServerInstaller : AbstractModServerInstaller
         }
         else
         {
-        return _libraries;
-    }
+            return _libraries;
+        }
     }
 
     static string? replaceLegacyMavenUrl(string? url)
