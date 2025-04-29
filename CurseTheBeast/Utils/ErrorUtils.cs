@@ -21,7 +21,7 @@ public static class ErrorUtils
         typeof(Exception),
     };
 
-    public static void Handler(Exception ex, ITypeResolver? typeResolver)
+    public static void Handler(Exception ex)
     {
         AnsiConsole.WriteLine();
         if (ex is Spectre.Console.Cli.CommandAppException cliEx)

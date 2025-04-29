@@ -32,11 +32,12 @@
 
   <ItemGroup>
     <PackageReference Include="Semver" Version="3.0.0" />
-    <PackageReference Include="Spectre.Console" Version="0.49.1" />
-    <PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
     <PackageReference Include="Strings.ResourceGenerator" Version="0.6.10" />    
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.4" />
     <PackageReference Include="TurnerSoftware.DinoDNS" Version="0.3.0" />
+	<!-- Do not bump dependencies below -->
+	<PackageReference Include="Spectre.Console" Version="0.47.1-preview.0.38" />
+	<PackageReference Include="Spectre.Console.Cli" Version="0.47.1-preview.0.38" />
   </ItemGroup>
 
   <ItemGroup>
