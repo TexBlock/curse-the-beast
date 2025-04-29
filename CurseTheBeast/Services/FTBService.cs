@@ -1,5 +1,6 @@
 ﻿using CurseTheBeast.Api.FTB;
 using CurseTheBeast.Api.FTB.Model;
+using CurseTheBeast.Packs;
 using CurseTheBeast.Services.Model;
 using CurseTheBeast.Storage;
 using Spectre.Console;
@@ -184,7 +185,7 @@ public class FTBService : IDisposable
         var manifest = await LocalStorage.Persistent.GetOrUpdateObject($"manifest-{info.id}-{versionId}",
             async manifest =>
             {
-                if (manifest?.files.All(f => f.hashes != null) == true)
+                if (manifest?.files.All(f => f.hashes?.sha512 != null) == true)
                     return manifest;
                 return await Focused.StatusAsync("获取整合包文件清单", async ctx => await _ftb.GetManifestAsync(info.id, versionId, ct));
             },
@@ -194,30 +195,6 @@ public class FTBService : IDisposable
         var iconFile = info.art.FirstOrDefault(a => a.type == "square");
         // var coverFile = info.art.FirstOrDefault(a => a.type == "splash");
 
-        var mods = files.Where(f => f.Type.Equals("mod", StringComparison.OrdinalIgnoreCase)).ToArray();
-        await LocalStorage.Persistent.GetOrUpdateObject<CurseforgeCache>("curseforge", async cache =>
-        {
-            var requestMods = cache == null ? mods : mods.Where(m =>
-            {
-                if (!cache.Items.TryGetValue(m.Sha1!, out var item))
-                    return true;
-                if (item != null)
-                    m.WithCurseforgeInfo(item.ProjectId, item.FileId);
-                return false;
-            }).ToArray();
-            if (requestMods.Length > 0)
-                await CurseforgeService.FetchModInfoAsync(requestMods, ct);
-            return new CurseforgeCache()
-            {
-                Items = mods.ToDictionary(m => m.Sha1!, m => m.Curseforge == null ? null : new CurseforgeCache.Item()
-                {
-                    ProjectId = m.Curseforge!.ProjectId,
-                    FileId = m.Curseforge.FileId
-                })
-            };
-        }, CurseforgeCache.CurseforgeCacheContext.Default.CurseforgeCache);
-        await ModrinthService.FetchModFileUrlAsync(mods, ct);
-
         return new FTBModpack()
         {
             Id = info.id,
@@ -225,7 +202,7 @@ public class FTBService : IDisposable
             Authors = info.authors.Select(a => a.name).ToArray(),
             Summary = info.synopsis,
             ReadMe = info.description,
-            Url = $"https://www.feed-the-beast.com/modpacks/" + info.id,
+            HomePageUrl = $"https://www.feed-the-beast.com/modpacks/" + info.id,
             Icon = iconFile == null ? null : new FileEntry(RepoType.Icon, info.id.ToString())
                 .WithArchiveEntryName("icon.png")
                 .WithSize(iconFile.size == 0 ? null : iconFile.size)
@@ -247,32 +224,35 @@ public class FTBService : IDisposable
                 RecommendedRam = manifest.specs.recommended,
                 MinimumRam = manifest.specs.minimum
             },
-            Files = new()
-            {
-                ServerFiles = files.Where(f => f.Side.HasFlag(FileSide.Server)).ToArray(),
-                ClientFilesWithoutCurseforgeMods = files.Where(f => f.Side.HasFlag(FileSide.Client)).Where(f => f.Curseforge == null).ToArray(),
-                ClientFullFiles = files.Where(f => f.Side.HasFlag(FileSide.Client)).ToArray(),
-                ClientCurseforgeMods = files.Where(f => f.Side.HasFlag(FileSide.Client)).Where(f => f.Curseforge != null).ToArray(),
-            }
+            Files = files
         };
     }
 
-    public async Task DownloadModpackFilesAsync(FTBModpack pack, bool server, bool full, CancellationToken ct = default)
+    public async Task DownloadModpackAsync(FTBModpack pack, bool server, bool full, string dstPath, CancellationToken ct = default)
     {
-        var files = new List<FileEntry>();
-        if (server)
-            files.AddRange(pack.Files.ServerFiles);
-        else if (full)
-            files.AddRange(pack.Files.ClientFullFiles);
+        using IPackProcessor processor = server 
+            ? new ServerModpackProcessor(pack, full)
+            : new ModrinthModpackProcessor(pack, full);
+
+        await processor.DownloadAsync(ct);
+        await processor.ProcessAsync(ct);
+
+        string filePath;
+        if (Directory.Exists(dstPath) || !dstPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        {
+            Directory.CreateDirectory(dstPath);
+            filePath = Path.Combine(dstPath, processor.DefaultFileName);
+        }
         else
-            files.AddRange(pack.Files.ClientFilesWithoutCurseforgeMods);
+        {
+            var dir = Path.GetDirectoryName(dstPath);
+            if (dir != null && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            filePath = dstPath;
+        }
 
-        if (pack.Icon != null)
-            files.Add(pack.Icon);
-
-        await FileDownloadService.DownloadAsync("下载整合包文件", files, ct);
-
-        Success.WriteLine("√ 下载完成");
+        await using (var fs = File.Create(filePath))
+            await processor.PackAsync(fs, filePath, ct);
     }
 
     public void Dispose()

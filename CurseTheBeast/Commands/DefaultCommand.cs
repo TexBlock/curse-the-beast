@@ -101,7 +101,7 @@ public class DefaultCommand : AsyncCommand
     async Task<int> download(ModpackInfo info, ModpackInfo.Version version, CancellationToken ct)
     {
         var server = prompt("选择整合包类型:", "客户端 - 用来玩", "服务端 - 用来开服") == 1;
-        var full = server || prompt("选择下载类型:", "标准包 - 下载快，体积小", "完整包 - 安装快") == 1;
+        var light = server || prompt("选择下载类型:", "标准包 - 体积较大，由本工具下载大多数文件并打包（推荐）", "轻量包 - 体积极小，由启动器在导入时下载所有文件") == 1;
         var preinstall = server && prompt($"是否预安装服务端，并且同意 MC 用户协议：https://aka.ms/MinecraftEULA",
             "是，并且同意该协议",
             "否，稍后手动安装") == 0;
@@ -110,7 +110,7 @@ public class DefaultCommand : AsyncCommand
         if (server)
             Success.WriteLine("类型：服务端" + (preinstall ? "（预安装）" : ""));
         else
-            Success.WriteLine("类型：客户端" + (full ? "（完整包）" : "（标准包）"));
+            Success.WriteLine("类型：客户端" + (light ? "（轻量包）" : "（标准包）"));
 
         Success.WriteLine($"保存位置: {output}");
         Focused.WriteLine("");
@@ -124,18 +124,7 @@ public class DefaultCommand : AsyncCommand
         Focused.WriteLine("");
 
         var pack = await _ftb.GetModpackAsync(info, version.id, ct);
-        await _ftb.DownloadModpackFilesAsync(pack, server, full, ct);
-
-        if (server)
-        {
-            using var serverLoader = new ServerModLoaderService(pack, preinstall);
-            var loaderFiles = await serverLoader.GetModLoaderFilesAsync(ct);
-            await PackService.PackServerAsync(pack, loaderFiles, preinstall, output, ct);
-        }
-        else
-        {
-            await PackService.PackClientAsync(pack, full, output, ct);
-        }
+        await _ftb.DownloadModpackAsync(pack, server, server ? preinstall : !light, output, ct);
 
         return 0;
     }

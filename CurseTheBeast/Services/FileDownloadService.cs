@@ -11,12 +11,12 @@ public static class FileDownloadService
 {
     static readonly int MinSizeOfShowedFile = 0 * 1024;
 
-    public static async Task DownloadAsync(string hint, IReadOnlyCollection<FileEntry> files, CancellationToken ct = default)
+    public static async Task DownloadAsync(string hint, IReadOnlyCollection<FileEntry> files, bool checkCache, CancellationToken ct = default)
     {
         if (files.Count == 0)
             return;
 
-        if (Focused.Status("检查下载缓存", ctx => files.All(file => file.Validate())))
+        if (checkCache && Focused.Status("检查下载缓存", ctx => files.All(file => file.Validate())))
             return;
 
         var progress = AnsiConsole.Progress();
@@ -24,14 +24,13 @@ public static class FileDownloadService
         progress.AutoRefresh = true;
         progress.HideCompleted = true;
         progress.AutoClear = true;
-        progress.Columns(new ProgressColumn[]
-        {
+        progress.Columns([
             new MySpinnerColumn(),
             new MyTaskDescriptionColumn(20),
             new MyProgressColumn(),
             new MyProgressBarColumn(),
             new MyRemainTimeColumn()
-        });
+        ]);
 
         await progress.StartAsync(async ctx =>
         {

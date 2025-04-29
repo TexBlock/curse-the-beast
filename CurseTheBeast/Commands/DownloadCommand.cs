@@ -21,9 +21,12 @@ public class DownloadCommand : AsyncCommand<DownloadCommand.Options>
         [CommandArgument(1, "[VersionId]")]
         public int VersionId { get; set; } = 0;
         
-        [Description("下载完整客户端（包含Curseforge文件）")]
-        [CommandOption("-f|--full")]
+        [CommandOption("-f|--full", IsHidden = true)]
         public bool FullPack { get; set; } = true;
+
+        [Description("下载轻量客户端（所有整合包文件由启动器在导入时下载）")]
+        [CommandOption("-l|--light")]
+        public bool LightPack { get; set; } = true;
     }
 
 
@@ -48,27 +51,16 @@ public class DownloadCommand : AsyncCommand<DownloadCommand.Options>
             pack = await ftb.GetModpackAsync(options.PackId, options.VersionId);
         }
 
-        var packType = (options.Server, options.FullPack, options.PreInstall) switch 
+        var packType = (options.Server, options.LightPack, options.PreInstall) switch 
         {
             (true, _, true) => "Server Preinstalled",
             (true, _, false) => "Server",
-            (false, true, _) => "Client Full",
+            (false, true, _) => "Client Light",
             (false, false, _) => "Client",
         };
 
         Success.WriteLine($"√ {pack.Name} v{pack.Version.Name}({pack.Version.Type}) {packType}");
-        await ftb.DownloadModpackFilesAsync(pack, options.Server, options.FullPack);
-
-        if(options.Server)
-        {
-            using var server = new ServerModLoaderService(pack, options.PreInstall);
-            var loaderFiles = await server.GetModLoaderFilesAsync();
-            await PackService.PackServerAsync(pack, loaderFiles, options.PreInstall, options.Output);
-        }
-        else
-        {
-            await PackService.PackClientAsync(pack, options.FullPack, options.Output);
-        }
+        await ftb.DownloadModpackAsync(pack, options.Server, options.Server ? options.PreInstall : !options.LightPack, options.Output);
 
         return 0;
     }

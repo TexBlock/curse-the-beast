@@ -7,15 +7,26 @@ namespace CurseTheBeast.Services.Model;
 public class FTBFileEntry : FileEntry
 {
     public FileSide Side { get; }
+    public bool Optional { get; }
+    [Obsolete]
     public CurseforgeInfo? Curseforge { get; private set; }
-    public string Type { get; }
+    public bool IsMod { get; }
     public long CFMurmur { get; }
+    public string Sha512 { get; }
 
     public FTBFileEntry(ModpackManifest.File file)
         : base(RepoType.AssetV2, getAssetCachePath(file.hashes.sha1))
     {
         CFMurmur = file.hashes.cfMurmur;
-        Type = file.type;
+        IsMod = file.type.Equals("mod", StringComparison.OrdinalIgnoreCase);
+        Sha512 = file.hashes.sha512;
+        Side = file switch
+        {
+            { serveronly: true } => FileSide.Server,
+            { clientonly: true } => FileSide.Client,
+            _ => FileSide.Both,
+        };
+        Optional = file.optional;
 
         WithSha1(file.hashes.sha1);
         WithSize(file.size);
@@ -27,14 +38,9 @@ public class FTBFileEntry : FileEntry
 
         SetDownloadable(file.name, [file.url, ..file.mirrors]);
 
-        Side = file switch
-        {
-            { serveronly: true } => FileSide.Server,
-            { clientonly: true } => FileSide.Client,
-            _ => FileSide.Both,
-        };
     }
 
+    [Obsolete]
     public FTBFileEntry WithCurseforgeInfo(long projectId, long fileId)
     {
         Curseforge = new CurseforgeInfo()

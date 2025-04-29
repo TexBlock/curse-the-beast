@@ -61,6 +61,7 @@ public partial class ModpackManifest : FTBRsp
         public class FileHash
         {
             public string sha1 { get; init; } = null!;
+            public string sha512 { get; init; } = null!;
             public long cfMurmur { get; init; }
         }
     }

@@ -47,7 +47,6 @@ public class ServerModLoaderService : IDisposable
         var serverJar = await GetServerJarAsync(manifest, ct);
         var loaderFiles = await GetModLoaderFilesAsync(_java, manifest, serverJar, ct);
 
-        Success.WriteLine("√ 服务端预安装完成");
         return loaderFiles;
     }
 
@@ -60,7 +59,7 @@ public class ServerModLoaderService : IDisposable
             {
                 try
                 {
-                    await FileDownloadService.DownloadAsync($"下载 {_pack.Runtime.ModLoaderType} 加载器", installerJar, ct);
+                    await FileDownloadService.DownloadAsync($"下载 {_pack.Runtime.ModLoaderType} 加载器", installerJar, true, ct);
                     return installerJar;
                 }
                 catch (Exception)
@@ -70,19 +69,19 @@ public class ServerModLoaderService : IDisposable
             }
         }
         // 不支持、获取失败、下载失败就不带了，自己下载去
-        return Array.Empty<FileEntry>();
+        return [];
     }
 
     public async Task<IReadOnlyCollection<FileEntry>> GetModLoaderFilesAsync(JavaRuntime java, GameManifest manifest, FileEntry serverJar, CancellationToken ct = default)
     {
         var installerJar = await Focused.StatusAsync($"解析 {_pack.Runtime.ModLoaderType} 安装器", async ctx => await _installer!.ResolveInstallerAsync(ct));
         if (installerJar.Count > 0)
-            await FileDownloadService.DownloadAsync($"下载 {_pack.Runtime.ModLoaderType} 安装器", installerJar, ct);
+            await FileDownloadService.DownloadAsync($"下载 {_pack.Runtime.ModLoaderType} 安装器", installerJar, true, ct);
 
         var deps = await Focused.StatusAsync($"解析 {_pack.Runtime.ModLoaderType} 依赖", 
             async ctx => await _installer!.ResolveInstallerDependenciesAsync(manifest, ct));
         if(deps.Count > 0)
-            await FileDownloadService.DownloadAsync($"下载 {_pack.Runtime.ModLoaderType} 依赖", deps, ct);
+            await FileDownloadService.DownloadAsync($"下载 {_pack.Runtime.ModLoaderType} 依赖", deps, true, ct);
 
         return await Focused.StatusAsync($"预安装 {_pack.Runtime.ModLoaderType} 服务端", 
             async ctx => await _installer!.PreInstallAsync(java, serverJar));
@@ -132,7 +131,7 @@ public class ServerModLoaderService : IDisposable
         serverJarFile.SetDownloadable($"mc-server-{_pack.Runtime.GameVersion}.jar", manifest.downloads.server.url)
             .WithSha1(manifest.downloads.server.sha1)
             .WithSize(manifest.downloads.server.size);
-        await FileDownloadService.DownloadAsync("下载服务端", [serverJarFile], ct);
+        await FileDownloadService.DownloadAsync("下载服务端", [serverJarFile], true, ct);
         return serverJarFile;
     }
 
@@ -190,7 +189,7 @@ public class ServerModLoaderService : IDisposable
                 .SetDownloadable(displayFileName, pkg.download_url);
             return javaArchiveFile;
         });
-        await FileDownloadService.DownloadAsync("下载 Java 运行环境", new[] { javaArchiveFile }, ct);
+        await FileDownloadService.DownloadAsync("下载 Java 运行环境", new[] { javaArchiveFile }, true, ct);
 
         return Focused.Status("准备 Java 运行环境", ctx =>
         {

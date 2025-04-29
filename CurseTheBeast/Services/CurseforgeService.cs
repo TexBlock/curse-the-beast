@@ -8,6 +8,7 @@ public class CurseforgeService
 {
     private static readonly CurseforgeApiClient Api = new CurseforgeApiClient();
 
+    [Obsolete]
     public static async Task FetchModInfoAsync(IEnumerable<FTBFileEntry> modFiles, CancellationToken ct = default)
     {
         await Focused.StatusAsync($"获取 Curseforge 模组信息", async ctx =>
