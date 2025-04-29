@@ -1,5 +1,4 @@
-﻿using CurseTheBeast.Download;
-using CurseTheBeast.Services;
+﻿using CurseTheBeast.Services;
 using CurseTheBeast.Services.Model;
 using CurseTheBeast.Utils;
 using System.IO.Compression;
@@ -121,14 +120,13 @@ public class ModrinthModpackProcessor : IPackProcessor
     {
         foreach (var file in _offlineAssets)
         {
-            if (file.Side == FileSide.Both)
-                await archive.WriteFileAsync(file.Side switch
-                {
-                    FileSide.Both => "overrides",
-                    FileSide.Server => "server-overrides",
-                    FileSide.Client => "client-overrides",
-                    _ => throw new Exception("Unknown file side: " + file.Side)
-                }, file, ct);
+            await archive.WriteFileAsync(file.Side switch
+            {
+                FileSide.Both => "overrides",
+                FileSide.Server => "server-overrides",
+                FileSide.Client => "client-overrides",
+                _ => throw new Exception("Unknown file side: " + file.Side)
+            }, file, ct);
         }
     }
 
