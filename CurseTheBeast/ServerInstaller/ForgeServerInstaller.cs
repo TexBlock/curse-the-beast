@@ -241,7 +241,7 @@ public class ForgeServerInstaller : AbstractModServerInstaller
             profileJson = await JsonNode.ParseAsync(profileStream, cancellationToken: ct);
             if (profileJson == null)
                 return null;
-            foreach (var processorJson in profileJson!["processors"]!.AsArray())
+            foreach (var processorJson in profileJson?["processors"]?.AsArray() ?? [])
             {
                 var argsJson = processorJson!["args"]?.AsArray();
                 if (argsJson?.Any(value => value?.GetValueKind() == JsonValueKind.String && value.GetValue<string>() == "DOWNLOAD_MOJMAPS") == true)
@@ -249,7 +249,7 @@ public class ForgeServerInstaller : AbstractModServerInstaller
                     argsJson.Add(JsonValue.Create("--skipIfExists"));
                     var valueJson = profileJson?["data"]?["MOJMAPS"]?["server"];
                     if (valueJson?.GetValueKind() == JsonValueKind.String)
-                        mojmapArtifactName = valueJson.GetValue<string>().TrimStart('[').TrimEnd(']');
+                        mojmapArtifactName = valueJson.GetValue<string>().Trim('[', ']');
                     break;
                 }
             }
@@ -266,7 +266,7 @@ public class ForgeServerInstaller : AbstractModServerInstaller
         using (var dstStream = dstZip.CreateEntry("install_profile.json", CompressionLevel.Fastest).Open())
             await JsonSerializer.SerializeAsync(dstStream, profileJson, JsonNodeContext.Default.JsonNode, cancellationToken: ct);
 
-        // 复制除清单和签名以外的其他文件
+        // 添加原安装包内除清单和签名以外的其他文件
         foreach (var entry in srcZip.Entries)
         {
             if (entry.Name == "install_profile.json" || (entry.FullName.StartsWith("META-INF") && (entry.Name.EndsWith(".SF") || entry.Name.EndsWith(".RSA"))))
