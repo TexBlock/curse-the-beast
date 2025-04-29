@@ -19,6 +19,7 @@ public class ForgeServerInstaller : AbstractModServerInstaller
     string _serverJarPath = null!;
     string _loaderFileName = null!;
     IReadOnlyCollection<MavenFileEntry> _libraries = null!;
+    FileEntry? _mappings;
 
     readonly LocalStorage _tempStorage = LocalStorage.GetTempStorage("forge-install");
 
@@ -117,7 +118,18 @@ public class ForgeServerInstaller : AbstractModServerInstaller
                 .Where(lib => lib != null))
             .DistinctBy(lib => lib!.Artifact.Id)
             .ToArray()!;
+        if (_installerSpec == 1 && manifest.downloads.server_mappings != null)
+        {
+            _mappings = new FileEntry(RepoType.ServerMappings, GameVersion)
+                .SetDownloadable("server_mappings.txt", manifest.downloads.server_mappings!.url)
+                .WithSize(manifest.downloads.server_mappings.size)
+                .WithSha1(manifest.downloads.server_mappings.sha1);
+            return [.. (_libraries as IReadOnlyCollection<FileEntry>), _mappings];
+        }
+        else
+        {
         return _libraries;
+    }
     }
 
     static string? replaceLegacyMavenUrl(string? url)
@@ -161,11 +173,22 @@ public class ForgeServerInstaller : AbstractModServerInstaller
             File.Copy(lib.LocalPath, libJarPath, true);
         }
 
+        // 尝试生成允许 mojmap 缓存的安装包
+        var modifiedInstaller = await generateModifiedInstaller(ct);
+
         // 执行安装
-        var ret = await java.ExecuteJarAsync(_installer.LocalPath, new[] { "--installServer", ".", "--offline" }, 
+        var ret = await java.ExecuteJarAsync(modifiedInstaller ?? _installer.LocalPath, new[] { "--installServer", ".", "--offline" }, 
             _tempStorage.WorkSpace, ct);
         if (ret != 0)
             throw new Exception($"forge-{GameVersion}-{LoaderVersion} 服务端预安装失败");
+        if (modifiedInstaller != null)
+        {
+            try
+            {
+                File.Delete(modifiedInstaller);
+            }
+            catch (Exception) { }
+        }
 
         var title = ServerName ?? $"Forge Server {GameVersion} {LoaderVersion}";
         var files = new List<FileEntry>(64);
@@ -197,6 +220,69 @@ public class ForgeServerInstaller : AbstractModServerInstaller
         if (launcherScriptName != null && Environment.OSVersion.Platform != PlatformID.Win32NT)
             files.First(f => f.ArchiveEntryName == launcherScriptName).SetUnixExecutable();
         return files;
+    }
+
+    private async Task<string?> generateModifiedInstaller(CancellationToken ct)
+    {
+        if (_mappings == null)
+            return null;
+
+        // 打开原安装包
+        using var srcZip = new ZipArchive(File.OpenRead(_installer.LocalPath), ZipArchiveMode.Read, false, UTF8);
+
+        // 尝试解析并修改清单
+        var profileEntry = srcZip.GetEntry("install_profile.json");
+        if (profileEntry == null)
+            return null;
+        JsonNode? profileJson = null;
+        string? mojmapArtifactName = null;
+        using (var profileStream = profileEntry.Open())
+        {
+            profileJson = await JsonNode.ParseAsync(profileStream, cancellationToken: ct);
+            if (profileJson == null)
+                return null;
+            foreach (var processorJson in profileJson!["processors"]!.AsArray())
+            {
+                var argsJson = processorJson!["args"]?.AsArray();
+                if (argsJson?.Any(value => value?.GetValueKind() == JsonValueKind.String && value.GetValue<string>() == "DOWNLOAD_MOJMAPS") == true)
+                {
+                    argsJson.Add(JsonValue.Create("--skipIfExists"));
+                    var valueJson = profileJson?["data"]?["MOJMAPS"]?["server"];
+                    if (valueJson?.GetValueKind() == JsonValueKind.String)
+                        mojmapArtifactName = valueJson.GetValue<string>().TrimStart('[').TrimEnd(']');
+                    break;
+                }
+            }
+        }
+        if (profileJson == null || mojmapArtifactName == null)
+            return null;
+
+        // 生成修改版安装包文件
+        var dstInstallerPath = Path.Combine(_tempStorage.WorkSpace, "installer.jar");
+        await using var dstFs = File.Create(dstInstallerPath);
+        using var dstZip = new ZipArchive(dstFs, ZipArchiveMode.Create, true, UTF8);
+
+        // 添加修改后的清单
+        using (var dstStream = dstZip.CreateEntry("install_profile.json", CompressionLevel.Fastest).Open())
+            await JsonSerializer.SerializeAsync(dstStream, profileJson, JsonNodeContext.Default.JsonNode, cancellationToken: ct);
+
+        // 复制除清单和签名以外的其他文件
+        foreach (var entry in srcZip.Entries)
+        {
+            if (entry.Name == "install_profile.json" || (entry.FullName.StartsWith("META-INF") && (entry.Name.EndsWith(".SF") || entry.Name.EndsWith(".RSA"))))
+                continue;
+            using var srcStream = entry.Open();
+            using var dstStream = dstZip.CreateEntry(entry.FullName, CompressionLevel.Fastest).Open();
+            await srcStream.CopyToAsync(dstStream, ct);
+        }
+
+        // 复制 mojmap 文件至缓存位置
+        var dstMappingFile = Path.Combine(_tempStorage.WorkSpace, "libraries", new MavenArtifact(mojmapArtifactName).FilePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(dstMappingFile)!);
+        File.Copy(_mappings.LocalPath, dstMappingFile, true);
+
+        // 完成
+        return dstInstallerPath;
     }
 
     public override void Dispose()
