@@ -161,6 +161,8 @@ public class NeoForgeServerInstaller : AbstractModServerInstaller
         using var dstZip = new ZipArchive(dstFs, ZipArchiveMode.Create, true, UTF8);
         foreach (var entry in srcZip.Entries)
         {
+            if (entry.FullName.StartsWith("META-INF") && (entry.Name.EndsWith(".SF") || entry.Name.EndsWith(".RSA")))
+                continue;
             var dstEntry = dstZip.CreateEntry(entry.FullName, CompressionLevel.Fastest);
             using var srcStream = entry.Open();
             using var dstStream = dstEntry.Open();
