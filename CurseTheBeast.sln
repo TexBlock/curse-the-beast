@@ -1,14 +1,17 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurseTheBeast", "CurseTheBeast\CurseTheBeast.csproj", "{7D4A81BF-7162-4D49-B929-7FD780D00354}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurseTheBeast.Core", "CurseTheBeast.Core\CurseTheBeast.Core.csproj", "{7D4A81BF-7162-4D49-B929-7FD780D00354}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CurseTheBeast.CLI", "CurseTheBeast.CLI\CurseTheBeast.CLI.csproj", "{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A065AC4A-BC2A-4A13-9E76-9FC74781BDC8}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CurseTheBeast.GUI", "CurseTheBeast.GUI\CurseTheBeast.GUI.csproj", "{A1BEB4A4-C79A-4867-B506-320E1318E77F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +29,22 @@ Global
 		{7D4A81BF-7162-4D49-B929-7FD780D00354}.Release|ARM64.Build.0 = Release|ARM64
 		{7D4A81BF-7162-4D49-B929-7FD780D00354}.Release|x64.ActiveCfg = Release|x64
 		{7D4A81BF-7162-4D49-B929-7FD780D00354}.Release|x64.Build.0 = Release|x64
+		{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}.Debug|ARM64.Build.0 = Debug|ARM64
+		{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}.Debug|x64.ActiveCfg = Debug|x64
+		{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}.Debug|x64.Build.0 = Debug|x64
+		{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}.Release|ARM64.ActiveCfg = Release|ARM64
+		{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}.Release|ARM64.Build.0 = Release|ARM64
+		{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}.Release|x64.ActiveCfg = Release|x64
+		{8FED3FD3-7EB3-4654-A213-52D04FF0DADA}.Release|x64.Build.0 = Release|x64
+		{A1BEB4A4-C79A-4867-B506-320E1318E77F}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{A1BEB4A4-C79A-4867-B506-320E1318E77F}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{A1BEB4A4-C79A-4867-B506-320E1318E77F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A1BEB4A4-C79A-4867-B506-320E1318E77F}.Debug|x64.Build.0 = Debug|Any CPU
+		{A1BEB4A4-C79A-4867-B506-320E1318E77F}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{A1BEB4A4-C79A-4867-B506-320E1318E77F}.Release|ARM64.Build.0 = Release|Any CPU
+		{A1BEB4A4-C79A-4867-B506-320E1318E77F}.Release|x64.ActiveCfg = Release|Any CPU
+		{A1BEB4A4-C79A-4867-B506-320E1318E77F}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

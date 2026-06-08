@@ -1,0 +1,306 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CurseTheBeast.GUI.ViewModels"
+        xmlns:models="using:CurseTheBeast.GUI.Models"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="CurseTheBeast.GUI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Width="1180"
+        Height="760"
+        Icon="/Assets/icon.ico"
+        Title="CurseTheBeast.GUI"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaToDecorationsHint="True"
+        Background="Transparent">
+    <Design.DataContext>
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+    
+    <Window.Resources>
+        <StreamGeometry x:Key="AboutIcon">M14,2 C20.6274,2 26,7.37258 26,14 C26,20.6274 20.6274,26 14,26 C7.37258,26 2,20.6274 2,14 C2,7.37258 7.37258,2 14,2 Z M14,3.5 C8.20101,3.5 3.5,8.20101 3.5,14 C3.5,19.799 8.20101,24.5 14,24.5 C19.799,24.5 24.5,19.799 24.5,14 C24.5,8.20101 19.799,3.5 14,3.5 Z M14,11 C14.3796833,11 14.6934889,11.2821653 14.7431531,11.6482323 L14.75,11.75 L14.75,19.25 C14.75,19.6642 14.4142,20 14,20 C13.6203167,20 13.3065111,19.7178347 13.2568469,19.3517677 L13.25,19.25 L13.25,11.75 C13.25,11.3358 13.5858,11 14,11 Z M14,7 C14.5523,7 15,7.44772 15,8 C15,8.55228 14.5523,9 14,9 C13.4477,9 13,8.55228 13,8 C13,7.44772 13.4477,7 14,7 Z</StreamGeometry>
+        <StreamGeometry x:Key="MoreIcon">M7 10C7 10.5523 6.55228 11 6 11C5.44772 11 5 10.5523 5 10C5 9.44772 5.44772 9 6 9C6.55228 9 7 9.44772 7 10Z M11 10C11 10.5523 10.5523 11 10 11C9.44772 11 9 10.5523 9 10C9 9.44772 9.44772 9 10 9C10.5523 9 11 9.44772 11 10Z M15 10C15 10.5523 14.5523 11 14 11C13.4477 11 13 10.5523 13 10C13 9.44772 13.4477 9 14 9C14.5523 9 15 9.44772 15 10Z M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10Z</StreamGeometry>
+    </Window.Resources>
+
+    <fa:NavigationView x:Name="RootNav" PaneDisplayMode="Top" IsSettingsVisible="False" SelectionChanged="OnNavigationSelectionChanged">
+        <fa:NavigationView.MenuItems>
+            <fa:NavigationViewItem Content="Modpacks" Tag="modpacks">
+                <fa:NavigationViewItem.IconSource>
+                    <fa:SymbolIconSource Symbol="Library" />
+                </fa:NavigationViewItem.IconSource>
+            </fa:NavigationViewItem>
+        </fa:NavigationView.MenuItems>
+        <fa:NavigationView.FooterMenuItems>
+            <fa:NavigationViewItem Content="Logs" Tag="logs">
+                <fa:NavigationViewItem.IconSource>
+                    <fa:SymbolIconSource Symbol="List" />
+                </fa:NavigationViewItem.IconSource>
+            </fa:NavigationViewItem>
+            <fa:NavigationViewItem Content="Settings" Tag="settings">
+                <fa:NavigationViewItem.IconSource>
+                    <fa:SymbolIconSource Symbol="Settings" />
+                </fa:NavigationViewItem.IconSource>
+            </fa:NavigationViewItem>
+            <fa:NavigationViewItem Content="About" Tag="about">
+                <fa:NavigationViewItem.IconSource>
+                    <fa:PathIconSource Data="{StaticResource AboutIcon}"/>
+                </fa:NavigationViewItem.IconSource>
+            </fa:NavigationViewItem>
+        </fa:NavigationView.FooterMenuItems>
+
+        <Grid>
+            <Border x:Name="ModpacksPage" Padding="10" Margin="5">
+                <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
+                         <TextBox Grid.Column="0"
+                                 Text="{Binding SearchKeyword}"
+                                 Watermark="Input modpack keyword, e.g. stoneblock 4">
+                         </TextBox>
+                        <Button Grid.Column="1" Command="{Binding SearchCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <fa:SymbolIcon Symbol="Find" FontSize="16"/>
+                                <TextBlock Text="Search"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <fa:CommandBar Grid.Row="1" DefaultLabelPosition="Right">
+                        <fa:CommandBar.PrimaryCommands>
+                            <fa:CommandBarButton IconSource="Flag" Label="Feature" Command="{Binding LoadFeaturedCommand}"/>
+                            <fa:CommandBarButton IconSource="ViewAll" Label="All" Command="{Binding LoadAllCommand}"/>
+                            <fa:CommandBarSeparator/>
+                            <fa:CommandBarToggleButton IconSource="Clear" Label="Clean" Command="{Binding ClearResultsCommand}"/>
+                        </fa:CommandBar.PrimaryCommands>
+                    </fa:CommandBar>
+                    <Grid Grid.Row="2" ColumnDefinitions="2*,3*" ColumnSpacing="12">
+                        <ListBox Grid.Column="0"
+                                 ItemsSource="{Binding Results}"
+                                 SelectedItem="{Binding SelectedResult}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ModpackItemViewModel">
+                                    <StackPanel Margin="0,2,0,2">
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Synopsis}"
+                                                   Opacity="0.8"
+                                                   MaxLines="2"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Grid Grid.Column="1"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*"
+                              RowSpacing="8">
+                            <Expander Grid.Row="0" Header="Details" IsExpanded="{Binding HasSelectedDetails}" IsEnabled="{Binding HasSelectedDetails}">
+                                <Border Height="300" IsVisible="{Binding HasSelectedDetails}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Spacing="8">
+                                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
+                                                <TextBlock Grid.Column="0" Text="Modpack Name:"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding SelectedDetailsName}"/>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
+                                                <TextBlock Text="Modpack ID:"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding SelectedDetailsId}"/>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
+                                                <TextBlock Grid.Column="0" Text="Authors:"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding SelectedDetailsAuthors}"/>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
+                                                <TextBlock Grid.Column="0" Text="Updated:"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding SelectedDetailsUpdatedTime}"/>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
+                                                <TextBlock Grid.Column="0" Text="Game Versions:"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding SelectedDetailsGameVersions}"/>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="Auto,Auto">
+                                                <TextBlock Grid.Column="0" Text="Modpack Page:" VerticalAlignment="Center"/>
+                                                <HyperlinkButton Grid.Column="1" Content="{Binding SelectedDetailsUrl}" NavigateUri="{Binding SelectedDetailsUrl}" VerticalAlignment="Center" IsVisible="{Binding HasSelectedDetails}" BorderThickness="-6"/>
+                                            </Grid>
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="Synopsis:"/>
+                                                <TextBlock Text="{Binding SelectedDetailsSynopsis}" TextWrapping="Wrap"></TextBlock>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </Border>
+                            </Expander>
+
+                            <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                                <ComboBox Grid.Column="0" MaxWidth="1000000"
+                                          ItemsSource="{Binding Versions}"
+                                          SelectedItem="{Binding SelectedVersion}"
+                                          PlaceholderText="Select modpack" IsEnabled="{Binding HasSelectedDetails}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:VersionItemViewModel">
+                                            <TextBlock HorizontalAlignment="Center">
+                                                <TextBlock Text="{Binding DisplayName}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                
+                                <DropDownButton Grid.Column="1" IsEnabled="{Binding HasSelectedDetails}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <fa:SymbolIcon Symbol="Download"/>
+                                        <TextBlock Text="Download"/>
+                                    </StackPanel>
+                                    <DropDownButton.Flyout>
+                                        <fa:FAMenuFlyout>
+                                            <fa:MenuFlyoutItem Text="Client" Command="{Binding DownloadClientCommand}"/>
+                                            <fa:MenuFlyoutItem Text="Server" Command="{Binding DownloadServerCommand}"/>
+                                        </fa:FAMenuFlyout>
+                                    </DropDownButton.Flyout>
+                                </DropDownButton>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border x:Name="SettingsPage"
+                    IsVisible="False"
+                    CornerRadius="8"
+                    Padding="20">
+                <Border>
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="10">
+                        <fa:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
+                            <fa:CommandBar.PrimaryCommands>
+                                <fa:CommandBarButton IconSource="Save" Label="Save" Command="{Binding SaveSettingsCommand}"/>
+                                <fa:CommandBarButton IconSource="Undo" Label="Reset" Command="{Binding ResetSettingsCommand}"/>
+                                <fa:CommandBarSeparator/>
+                                <fa:CommandBarToggleButton IconSource="Sync" Label="Auto Save"/>
+                            </fa:CommandBar.PrimaryCommands>
+                        </fa:CommandBar>
+                        <fa:SettingsExpander Grid.Row="1" Header="Misc" IconSource="ColorBackground">
+                            <fa:SettingsExpanderItem Content="LoadAllOnStartup">
+                                <fa:SettingsExpanderItem.Footer>
+                                    <ToggleSwitch IsChecked="{Binding LoadAllOnStartup}"/>
+                                </fa:SettingsExpanderItem.Footer>
+                            </fa:SettingsExpanderItem>
+                            <fa:SettingsExpanderItem Content="ThemeMode">
+                                <fa:SettingsExpanderItem.Footer>
+                                    <ComboBox MinWidth="180"
+                                              ItemsSource="{Binding AvailableThemeModes}"
+                                              SelectedItem="{Binding ThemeMode}"/>
+                                </fa:SettingsExpanderItem.Footer>
+                            </fa:SettingsExpanderItem>
+                            <fa:SettingsExpanderItem Content="WindowTransparencyMode">
+                                <fa:SettingsExpanderItem.Footer>
+                                    <ComboBox MinWidth="180"
+                                              ItemsSource="{Binding AvailableWindowTransparencyModes}"
+                                              SelectedItem="{Binding WindowTransparencyMode}"/>
+                                </fa:SettingsExpanderItem.Footer>
+                            </fa:SettingsExpanderItem>
+                        </fa:SettingsExpander>
+
+                        <fa:SettingsExpander Grid.Row="2" Header="Download" IconSource="Download">
+                            <fa:SettingsExpanderItem Content="DownloadFullPack">
+                                <fa:SettingsExpanderItem.Footer>
+                                    <ToggleSwitch IsChecked="{Binding DownloadFullPack}"/>
+                                </fa:SettingsExpanderItem.Footer>
+                            </fa:SettingsExpanderItem>
+                            <fa:SettingsExpanderItem Content="DownloadPath">
+                                <fa:SettingsExpanderItem.Footer>
+                                    <TextBox Text="{Binding DownloadPath}"/>
+                                </fa:SettingsExpanderItem.Footer>
+                            </fa:SettingsExpanderItem>
+                        </fa:SettingsExpander>
+                    </Grid>
+                </Border>
+            </Border>
+
+            <Border x:Name="LogsPage"
+                    IsVisible="False"
+                    CornerRadius="8"
+                    Padding="20">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <TextBlock Text="Logs" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Command="{Binding ClearLogsCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <fa:SymbolIcon Symbol="Delete" />
+                                <TextBlock Text="Clear" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding Logs}">
+                        <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:LogEntry">
+                                <Border Padding="10" CornerRadius="6" Margin="0,0,0,8">
+                                    <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="10">
+                                        <TextBlock Text="{Binding TimeText}" Opacity="0.7"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding LevelText}" FontWeight="SemiBold"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Source}" Opacity="0.8"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Message}" TextWrapping="Wrap"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border x:Name="AboutPage" IsVisible="False" CornerRadius="8" Padding="20">
+                <Border HorizontalAlignment="Center">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="20">
+                        <Grid Grid.Row="0" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+                            <Border Grid.Row="0" Width="100" Height="100">
+                                <Image Source="avares://CurseTheBeast.GUI/Assets/icon.ico"/>
+                            </Border>
+                            <TextBlock Grid.Row="1" Text="CurseTheBeast.GUI" FontSize="40" FontWeight="Black" HorizontalAlignment="Center"/>
+                            <TextBlock Grid.Row="2" Text="Powered by CurseTheBeast" FontSize="20" HorizontalAlignment="Center"/>
+                            <TextBlock Grid.Row="3" Text="V1.0.0" HorizontalAlignment="Center" Margin="2"/>
+                        </Grid>
+                        
+                        <StackPanel Grid.Row="1" Width="800" Spacing="10">
+                            <fa:SettingsExpander Header="Info" IsExpanded="True">
+                                <fa:SettingsExpanderItem Content="License">
+                                    <fa:SettingsExpanderItem.Footer>
+                                        <TextBlock Text="MIT"/>
+                                    </fa:SettingsExpanderItem.Footer>
+                                </fa:SettingsExpanderItem>
+                                <fa:SettingsExpanderItem Content="Github">
+                                    <fa:SettingsExpanderItem.Footer>
+                                        <HyperlinkButton Content="https://github.com/amwx/FluentAvalonia" NavigateUri="https://github.com/amwx/FluentAvalonia" BorderThickness="-6"/>
+                                    </fa:SettingsExpanderItem.Footer>
+                                </fa:SettingsExpanderItem>
+                            </fa:SettingsExpander>
+                            <fa:SettingsExpander Header="程序作者与贡献者" IsExpanded="True">
+                                <fa:SettingsExpanderItem>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <Border Width="36" Height="36" CornerRadius="18" ClipToBounds="True">
+                                            <Image Source="avares://CurseTheBeast.GUI/Assets/author-avatar.png" Stretch="UniformToFill" />
+                                        </Border>
+                                        <TextBlock Text="TomatoPuddin" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <fa:SettingsExpanderItem.Footer>
+                                        <TextBlock Text="CurseTheBeast 作者" FontSize="12" FontWeight="Light"/>
+                                    </fa:SettingsExpanderItem.Footer>
+                                </fa:SettingsExpanderItem>
+                                                                        
+                                <fa:SettingsExpanderItem>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <Border Width="36" Height="36" CornerRadius="18" ClipToBounds="True">
+                                            <Image Source="avares://CurseTheBeast.GUI/Assets/author-avatar.png" Stretch="UniformToFill" />
+                                        </Border>
+                                        <TextBlock Text="TexTrue" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <fa:SettingsExpanderItem.Footer>
+                                        <TextBlock Text="CurseTheBeast.GUI 作者" FontSize="12" FontWeight="Light"/>
+                                    </fa:SettingsExpanderItem.Footer>
+                                </fa:SettingsExpanderItem>
+                            </fa:SettingsExpander>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Border>
+        </Grid>
+    </fa:NavigationView>
+</Window>

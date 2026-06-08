@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64;ARM64</Platforms>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Version>0.7.1</Version>
+    <Authors>TomatoPuddin</Authors>
+    <Company>TomatoPuddin</Company>
+    <Product>CurseTheBeast</Product>
+    <Title>CurseTheBeast</Title>
+    <PackageId>CurseTheBeast</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2025</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CurseTheBeast.Core\CurseTheBeast.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Do not bump dependencies below -->
+    <PackageReference Include="Spectre.Console" Version="0.47.1-preview.0.38" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.47.1-preview.0.38" />
+  </ItemGroup>
+
+</Project>
